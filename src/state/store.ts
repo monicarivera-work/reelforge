@@ -34,6 +34,7 @@ export type SheetId =
   | 'textEdit'
   | 'textStyle'
   | 'color'
+  | 'soundbite'
   | 'replace';
 
 export interface Toast {

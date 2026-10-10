@@ -1793,6 +1793,33 @@ select.input {
   color: var(--text);
 }
 
+.export-done audio {
+  width: 100%;
+}
+
+/* ------------------------------------------------------------------ soundbite */
+
+.time-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.time-fields .input::placeholder {
+  color: var(--dim);
+  opacity: 1;
+}
+
+.time-fields .input[aria-invalid='true'] {
+  border-color: var(--accent);
+}
+
+.note b {
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

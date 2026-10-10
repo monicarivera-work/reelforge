@@ -35,7 +35,7 @@ import {
   type KeyValues,
 } from '../lib/layout';
 import { captureFrame, getAsset, importFiles } from '../lib/media';
-import { clamp } from '../lib/util';
+import { clamp, formatClock } from '../lib/util';
 import { now, pause, seek } from '../state/runtime';
 import { selectedItem, toast, useEditor, type ApplyOptions } from '../state/store';
 
@@ -463,6 +463,26 @@ export function extractAudio() {
     { select: a.id },
   );
   toast('Sound moved to its own track', 'success');
+}
+
+/** Adds `start`–`end` (seconds into the clip's video) of a clip's sound at the playhead. The clip keeps its own sound. */
+export function addSoundbite(v: VideoItem, start: number, end: number) {
+  const asset = getAsset(v.mediaId);
+  if (!asset?.hasAudio) {
+    toast('This clip has no sound');
+    return;
+  }
+  const a = audioItem(asset, now(), 'extracted', `${prettyName(asset.name)} ${formatClock(start)}–${formatClock(end)}`);
+  a.in = start;
+  a.duration = end - start;
+  ed().apply(
+    (d) => {
+      a.lane = pickLane(d.audios as Item[], a.start, itemEnd(a));
+      d.audios.push(a);
+    },
+    { select: a.id },
+  );
+  toast('Soundbite added to the audio track', 'success');
 }
 
 /** Swaps the media of the selected video/photo, keeping its timing and look. */

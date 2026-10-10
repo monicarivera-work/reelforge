@@ -23,6 +23,7 @@ import {
 import { CropSheet } from './CropSheet';
 import { ExportSheet } from './ExportSheet';
 import { MediaSheet } from './MediaSheet';
+import { SoundbiteSheet } from './SoundbiteSheet';
 import { StickerSheet, TextEditSheet, TextStyleSheet } from './TextSheets';
 
 const close = () => useEditor.getState().closeSheet();
@@ -35,6 +36,7 @@ const visual = (it: Item) => it.type !== 'audio';
 const FITS: Partial<Record<SheetId, (it: Item) => boolean>> = {
   speed: timed,
   volume: timed,
+  soundbite: (it) => it.type === 'video',
   animation: visual,
   filters: media,
   adjust: media,
@@ -104,6 +106,8 @@ export function SheetHost() {
       return <SpeedSheet key={key} item={it as VideoItem | AudioItem} onClose={close} />;
     case 'volume':
       return <VolumeSheet key={key} item={it as VideoItem | AudioItem} onClose={close} />;
+    case 'soundbite':
+      return <SoundbiteSheet key={key} item={it as VideoItem} onClose={close} />;
     case 'animation':
       return <AnimationSheet key={key} item={it as VisualItem} onClose={close} />;
     case 'filters':

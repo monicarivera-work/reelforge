@@ -67,7 +67,7 @@ function friendlyError(e: unknown): string {
 }
 
 /** Shares a finished file, falling back to a download where sharing files isn't supported. Call inside a tap. */
-function shareOrDownload(file: File) {
+export function shareOrDownload(file: File) {
   shareFile(file, file.name).then(
     (r) => {
       if (r === 'unsupported') downloadBlob(file, file.name);

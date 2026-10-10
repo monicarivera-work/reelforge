@@ -21,7 +21,7 @@ import { canvasSize, projectDuration } from '../lib/layout';
 import { getAsset, getBlob, getImage, getObjectUrl, loadAssets, loadVideoElement, makeCanvas, peekImage, seekElement } from '../lib/media';
 import { ensureFont } from '../lib/text';
 import { clamp, safeFileName } from '../lib/util';
-import { AudioMixer } from './audio';
+import { AudioMixer, canEncodeAac } from './audio';
 import { Compositor } from './gl';
 import { buildFrame, TextCache, type FrameProvider, type FrameSource } from './scene';
 
@@ -284,16 +284,9 @@ async function preloadResources(p: Project) {
 // ---------------------------------------------------------------------------
 // Encoders
 
-let aacPolyfill: Promise<void> | null = null;
-
 async function pickAudioCodec(): Promise<AudioCodec | null> {
   const opts = { numberOfChannels: 2, sampleRate: SAMPLE_RATE, bitrate: AUDIO_BITRATE };
-  if (await canEncodeAudio('aac', opts).catch(() => false)) return 'aac';
-  aacPolyfill ??= import('@mediabunny/aac-encoder')
-    .then((m) => m.registerAacEncoder())
-    .catch((e) => console.warn('AAC polyfill failed to load', e));
-  await aacPolyfill;
-  if (await canEncodeAudio('aac', opts).catch(() => false)) return 'aac';
+  if (await canEncodeAac(opts)) return 'aac';
   if (await canEncodeAudio('opus', opts).catch(() => false)) return 'opus';
   return null;
 }

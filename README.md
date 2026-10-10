@@ -13,7 +13,7 @@ After the first visit it works offline. Auto-captions download a speech model (a
 
 ## What you can do
 
-- **Clips:** import videos, photos and audio, then trim, split, duplicate, reorder, replace, rotate, flip, freeze a frame and extract the audio.
+- **Clips:** import videos, photos and audio, then trim, split, duplicate, reorder, replace, rotate, flip, freeze a frame, extract the audio and make soundbites.
 - **Speed:** 0.1× to 10×, with pitch that follows the speed.
 - **Canvas:** 9:16, 16:9, 1:1, 4:5, 3:4, 4:3 and 21:9; fit or fill; a blurred or solid color background.
 - **Text and stickers:** styled text presets, 12 fonts, outline, shadow, background, emoji stickers, and in and out animations.
@@ -24,6 +24,14 @@ After the first visit it works offline. Auto-captions download a speech model (a
 - **Layers:** picture-in-picture overlays, text and audio tracks.
 - **Export:** MP4 at up to 4K and 60 fps with a size estimate, then share straight to TikTok, Instagram or YouTube. You can also save a single frame as a thumbnail.
 - **Safety net:** unlimited undo and redo, and autosave of every project to the device.
+
+## Make a soundbite
+
+1. Tap a video clip on the timeline, then tap **Soundbite**.
+2. Type where the soundbite starts and ends, counted from the beginning of the clip's original video. `42.5` is 42.5 seconds and `102.5` is 1:02.5, so you don't need a colon (`1:02.5` works too).
+3. Tap **Add to audio track** to place it at the playhead, or **Save audio file** to share or download it as an .m4a file (or .wav if the device can't make .m4a files).
+
+The clip keeps its own sound, so move the soundbite or mute the clip if you hear both at once.
 
 ## Privacy
 
