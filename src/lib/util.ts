@@ -21,6 +21,41 @@ export function formatTime(s: number, frac = false): string {
   return frac ? `${mm}:${ss}.${tenths % 10}` : `${mm}:${ss}`;
 }
 
+/** Like formatTime with tenths, but keeps hundredths when they matter ("00:42.55"). Pairs with parseTime. */
+export function formatClock(s: number): string {
+  if (!Number.isFinite(s) || s < 0) s = 0;
+  const cs = Math.round(s * 100);
+  const whole = Math.floor(cs / 100);
+  const mm = String(Math.floor(whole / 60)).padStart(2, '0');
+  const ss = String(whole % 60).padStart(2, '0');
+  const frac = cs % 100;
+  return `${mm}:${ss}.${frac % 10 ? String(frac).padStart(2, '0') : frac / 10}`;
+}
+
+/**
+ * Reads a typed time: seconds ("42.5", "42,5", "42s"), minutes:seconds ("0:42.5", "1:02") or
+ * hours:minutes:seconds ("1:02:03"). Phone number pads have no colon, so from 100 up the last two
+ * digits are seconds, like on a microwave: "102.5" is 1:02.5. Returns null when the text isn't a time.
+ */
+export function parseTime(text: string): number | null {
+  const s = text.trim().replace(',', '.');
+  const secs = /^(\d+(?:\.\d*)?|\.\d+)s$/i.exec(s);
+  if (secs) return Number(secs[1]);
+  const pad = /^(\d*)(\.\d*)?$/.exec(s);
+  if (pad) {
+    const [, whole, frac = ''] = pad;
+    if (!whole && frac.length < 2) return null;
+    if (whole.length <= 2) return Number(`${whole || 0}${frac}`);
+    const sec = Number(whole.slice(-2) + frac);
+    return sec >= 60 ? null : Number(whole.slice(0, -2)) * 60 + sec;
+  }
+  const m = /^(?:(\d+):)?(\d+):(\d{1,2}(?:\.\d*)?)$/.exec(s);
+  if (!m) return null;
+  const [, h, min, sec] = m;
+  if (Number(sec) >= 60 || (h !== undefined && Number(min) >= 60)) return null;
+  return Number(h ?? 0) * 3600 + Number(min) * 60 + Number(sec);
+}
+
 export function formatDuration(s: number): string {
   if (!Number.isFinite(s) || s < 0) s = 0;
   // Tenths are truncated like formatTime so this matches the editor's timer.

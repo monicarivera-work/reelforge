@@ -14,6 +14,7 @@ import {
   Gauge,
   ImagePlus,
   Layers,
+  MessageSquareQuote,
   Move,
   Music,
   PaintBucket,
@@ -197,6 +198,7 @@ function itemTools(item: Item, kind: TrackKind, index: number, keyframeHere: boo
     ...place,
     ...(kind === 'main' ? [{ key: 'freeze', label: 'Freeze', Icon: Snowflake, run: () => void freezeFrame() }] : []),
     { key: 'extract', label: 'Extract audio', Icon: AudioLines, run: extractAudio },
+    sheetTool('soundbite', 'Soundbite', MessageSquareQuote),
     { key: 'replace', label: 'Replace', Icon: Replace, run: replace },
     dup,
   ];

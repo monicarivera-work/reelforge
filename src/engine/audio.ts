@@ -1,4 +1,4 @@
-import { ALL_FORMATS, AudioBufferSink, BlobSource, Input, type WrappedAudioBuffer } from 'mediabunny';
+import { ALL_FORMATS, AudioBufferSink, BlobSource, Input, canEncodeAudio, type WrappedAudioBuffer } from 'mediabunny';
 import type { AudioItem, Project, VideoItem } from '../types';
 import { itemEnd, projectDuration, transitionOverlap } from '../lib/layout';
 import { decodeWholeAudio, getAsset, getBlob, loadAssets } from '../lib/media';
@@ -550,6 +550,19 @@ export class AudioPlayback {
 }
 
 // ---------------------------------------------------------------------------
+// Encoding
+
+let aacPolyfill: Promise<void> | null = null;
+
+/** Whether AAC can be encoded with these settings, loading the WebAssembly encoder where the browser has none. */
+export async function canEncodeAac(opts: { numberOfChannels: number; sampleRate: number; bitrate: number }): Promise<boolean> {
+  if (await canEncodeAudio('aac', opts).catch(() => false)) return true;
+  aacPolyfill ??= import('@mediabunny/aac-encoder')
+    .then((m) => m.registerAacEncoder())
+    .catch((e) => console.warn('AAC polyfill failed to load', e));
+  await aacPolyfill;
+  return canEncodeAudio('aac', opts).catch(() => false);
+}
 
 export function encodeWav(channels: Float32Array[], sampleRate: number): Blob {
   const nch = channels.length;
