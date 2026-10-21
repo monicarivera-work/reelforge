@@ -1,5 +1,5 @@
 import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
-import type { MediaAsset, Project } from '../types';
+import type { ClipFolder, ClipMeta, MediaAsset, Project } from '../types';
 import { allItems } from './layout';
 
 export interface ThumbRecord {
@@ -21,17 +21,32 @@ interface RFSchema extends DBSchema {
   media: { key: string; value: { asset: MediaAsset; blob: Blob } };
   thumbs: { key: string; value: ThumbRecord };
   peaks: { key: string; value: PeakRecord };
+  clips: { key: string; value: ClipRecord };
+  folders: { key: string; value: ClipFolder };
+}
+
+export interface ClipRecord {
+  meta: ClipMeta;
+  blob: Blob;
+  /** a JPEG frame for video clips */
+  poster: Blob | null;
 }
 
 let dbp: Promise<IDBPDatabase<RFSchema>> | null = null;
 
 export function db(): Promise<IDBPDatabase<RFSchema>> {
-  dbp ??= openDB<RFSchema>('reelforge', 1, {
-    upgrade(d) {
-      d.createObjectStore('projects', { keyPath: 'id' });
-      d.createObjectStore('media');
-      d.createObjectStore('thumbs', { keyPath: 'id' });
-      d.createObjectStore('peaks', { keyPath: 'id' });
+  dbp ??= openDB<RFSchema>('reelforge', 2, {
+    upgrade(d, oldVersion) {
+      if (oldVersion < 1) {
+        d.createObjectStore('projects', { keyPath: 'id' });
+        d.createObjectStore('media');
+        d.createObjectStore('thumbs', { keyPath: 'id' });
+        d.createObjectStore('peaks', { keyPath: 'id' });
+      }
+      if (oldVersion < 2) {
+        d.createObjectStore('clips', { keyPath: 'meta.id' });
+        d.createObjectStore('folders', { keyPath: 'id' });
+      }
     },
   });
   return dbp;
@@ -77,6 +92,63 @@ export async function getPeaks(id: string): Promise<PeakRecord | undefined> {
 
 export async function putPeaks(rec: PeakRecord): Promise<void> {
   await (await db()).put('peaks', rec);
+}
+
+// ---------------------------------------------------------------------------
+// Clip library
+
+/** Every clip's details, without loading the files. */
+export async function listClips(): Promise<{ meta: ClipMeta; poster: Blob | null }[]> {
+  const d = await db();
+  const out: { meta: ClipMeta; poster: Blob | null }[] = [];
+  let cur = await d.transaction('clips').store.openCursor();
+  while (cur) {
+    out.push({ meta: cur.value.meta, poster: cur.value.poster });
+    cur = await cur.continue();
+  }
+  return out;
+}
+
+export async function getClip(id: string): Promise<ClipRecord | undefined> {
+  return (await db()).get('clips', id);
+}
+
+export async function putClip(rec: ClipRecord): Promise<void> {
+  await (await db()).put('clips', rec);
+}
+
+export async function updateClipMeta(id: string, patch: Partial<ClipMeta>): Promise<void> {
+  const d = await db();
+  const tx = d.transaction('clips', 'readwrite');
+  const rec = await tx.store.get(id);
+  if (rec) await tx.store.put({ ...rec, meta: { ...rec.meta, ...patch, id } });
+  await tx.done;
+}
+
+export async function deleteClip(id: string): Promise<void> {
+  await (await db()).delete('clips', id);
+}
+
+export async function listFolders(): Promise<ClipFolder[]> {
+  const all = await (await db()).getAll('folders');
+  return all.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export async function putFolder(f: ClipFolder): Promise<void> {
+  await (await db()).put('folders', f);
+}
+
+/** Deletes a folder; its clips stay in the library, unfiled. */
+export async function deleteFolder(id: string): Promise<void> {
+  const d = await db();
+  const tx = d.transaction(['folders', 'clips'], 'readwrite');
+  await tx.objectStore('folders').delete(id);
+  let cur = await tx.objectStore('clips').openCursor();
+  while (cur) {
+    if (cur.value.meta.folderId === id) await cur.update({ ...cur.value, meta: { ...cur.value.meta, folderId: null } });
+    cur = await cur.continue();
+  }
+  await tx.done;
 }
 
 export function projectMediaIds(p: Project): string[] {

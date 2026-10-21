@@ -258,3 +258,34 @@ export function isVisual(item: Item): item is VisualItem {
 export function isTimedMedia(item: Item): item is VideoItem | AudioItem {
   return item.type === 'video' || item.type === 'audio';
 }
+
+/** A clip saved to the clip library (the file itself is stored next to it). */
+export interface ClipMeta {
+  id: string;
+  name: string;
+  kind: 'video' | 'audio';
+  mime: string;
+  /** file name with extension, used when sharing or saving */
+  fileName: string;
+  size: number;
+  /** seconds */
+  duration: number;
+  /** pixels; 0 for audio */
+  width: number;
+  height: number;
+  folderId: string | null;
+  /** where it came from: a YouTube title, a file name or a link */
+  source?: string;
+  /** YouTube video ID when it came from YouTube */
+  youtubeId?: string;
+  /** seconds into the source */
+  start: number;
+  end: number;
+  createdAt: number;
+}
+
+export interface ClipFolder {
+  id: string;
+  name: string;
+  createdAt: number;
+}
