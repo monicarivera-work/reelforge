@@ -1,9 +1,8 @@
 name: Android app
 
+# Every branch push builds an APK artifact; only main updates the public release.
 on:
   push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -81,7 +80,7 @@ jobs:
           path: ReelForge.apk
 
       - name: Publish the "Latest Android app" release
-        if: ${{ github.event_name != 'pull_request' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
