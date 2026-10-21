@@ -41,21 +41,25 @@ import './styles.css';
 import { App } from './App';
 import { useApp } from './state/app';
 import { trackKeyboard } from './lib/device';
+import { isNativeApp } from './lib/util';
 
 trackKeyboard();
 
-const updateSW = registerSW({
-  onNeedRefresh() {
-    useApp.setState({ needRefresh: true });
-  },
-  onRegisteredSW(_url, reg) {
-    // Installed apps can stay open for days; look for updates every hour.
-    if (reg) setInterval(() => void reg.update().catch(() => undefined), 60 * 60 * 1000);
-  },
-  onRegisterError(e) {
-    console.warn('Service worker registration failed', e);
-  },
-});
-useApp.setState({ updateSW });
+// The Android app updates by installing a new APK, so it doesn't use the offline service worker.
+const updateSW = isNativeApp()
+  ? null
+  : registerSW({
+      onNeedRefresh() {
+        useApp.setState({ needRefresh: true });
+      },
+      onRegisteredSW(_url, reg) {
+        // Installed apps can stay open for days; look for updates every hour.
+        if (reg) setInterval(() => void reg.update().catch(() => undefined), 60 * 60 * 1000);
+      },
+      onRegisterError(e) {
+        console.warn('Service worker registration failed', e);
+      },
+    });
+if (updateSW) useApp.setState({ updateSW });
 
 createRoot(document.getElementById('root')!).render(<App />);

@@ -117,9 +117,7 @@ async function encodeAudio(input: Input, track: InputAudioTrack, job: ClipJob): 
   await run(conversion, job);
   const buffer = output.target.buffer;
   if (!buffer) throw new ClipError('Saving produced no data.');
-  const file = aac
-    ? new File([buffer], `${job.name}.m4a`, { type: M4A_TYPE })
-    : new File([buffer], `${job.name}.wav`, { type: 'audio/wav' });
+  const file = aac ? new File([buffer], `${job.name}.m4a`, { type: M4A_TYPE }) : new File([buffer], `${job.name}.wav`, { type: 'audio/wav' });
   return { file, width: 0, height: 0, duration: job.end - job.start };
 }
 

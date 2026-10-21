@@ -1,8 +1,9 @@
 import { useSyncExternalStore } from 'react';
 
-export type Route = { name: 'home' } | { name: 'editor'; id: string };
+export type Route = { name: 'home' } | { name: 'editor'; id: string } | { name: 'studio' };
 
 function parse(): Route {
+  if (/^#\/studio\b/.test(location.hash)) return { name: 'studio' };
   const m = /^#\/p\/([\w-]+)/.exec(location.hash);
   return m ? { name: 'editor', id: m[1] } : { name: 'home' };
 }
@@ -35,6 +36,11 @@ export function useRoute(): Route {
 export function openProject(id: string) {
   pushedFromHome = true;
   location.hash = `#/p/${id}`;
+}
+
+export function openStudio() {
+  pushedFromHome = true;
+  location.hash = '#/studio';
 }
 
 export function goHome() {

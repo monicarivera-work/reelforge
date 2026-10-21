@@ -1,3 +1,5 @@
+import { isNativeApp } from './util';
+
 /**
  * Phone-specific glue: on-screen keyboard tracking, iOS keyboard priming and file picking.
  */
@@ -69,6 +71,7 @@ export function pickFiles(accept: string, multiple = true): Promise<File[]> {
 
 /** Shares a file through the OS share sheet when possible; returns false if unsupported. */
 export async function shareFile(file: File, title: string): Promise<'shared' | 'cancelled' | 'unsupported'> {
+  if (isNativeApp()) return (await import('./native')).nativeShare(file, title);
   const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
   if (!nav.share || !nav.canShare?.({ files: [file] })) return 'unsupported';
   try {
