@@ -1134,6 +1134,12 @@ select.input {
 
 .menu-sheet {
   z-index: 61;
+  max-height: calc(100dvh - var(--sat) - 32px - var(--kb));
+}
+
+.menu-sheet .list {
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .menu-scrim {

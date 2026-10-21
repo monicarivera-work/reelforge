@@ -2,15 +2,15 @@ import {
   ALL_FORMATS,
   BlobSource,
   BufferTarget,
-  canEncodeVideo,
+  canEncodeAudio,
   Conversion,
   EncodedAudioPacketSource,
   EncodedPacketSink,
   EncodedVideoPacketSource,
   Input,
   Mp4OutputFormat,
+  getFirstEncodableVideoCodec,
   Output,
-  Quality,
   WavOutputFormat,
   type InputAudioTrack,
   type InputVideoTrack,
@@ -64,7 +64,11 @@ async function encodeVideo(input: Input, track: InputVideoTrack, job: ClipJob): 
   const crop = job.crop && !isFullCrop(job.crop) ? cropPixels(job.crop, srcW, srcH) : null;
   const width = crop?.width ?? srcW;
   const height = crop?.height ?? srcH;
-  const avc = await canEncodeVideo('avc', { width, height }).catch(() => false);
+  const bitrate = Math.max(2_000_000, Math.min(16_000_000, width * height * 4));
+  const codec = await getFirstEncodableVideoCodec(['avc', 'hevc', 'vp9', 'av1'], { width, height, bitrate }).catch(() => null);
+  if (!codec) throw new ClipError('This phone can’t encode video. Try updating it, or save an audio clip instead.');
+  const audioOpts = { numberOfChannels: 2, sampleRate: 48_000, bitrate: 192_000 };
+  const acodec = (await canEncodeAac(audioOpts)) ? 'aac' : (await canEncodeAudio('opus', audioOpts).catch(() => false)) ? 'opus' : null;
   const output = new Output({ format: new Mp4OutputFormat({ fastStart: 'in-memory' }), target: new BufferTarget() });
   const conversion = await Conversion.init({
     input,
@@ -72,12 +76,12 @@ async function encodeVideo(input: Input, track: InputVideoTrack, job: ClipJob): 
     trim: { start: job.start, end: job.end },
     video: {
       ...(crop ? { crop } : {}),
-      ...(avc ? { codec: 'avc' as const } : {}),
-      quality: new Quality(Math.max(2_000_000, Math.min(16_000_000, width * height * 4))),
+      codec,
+      bitrate,
       // Re-encoding cuts on the exact frame instead of the nearest key frame.
       forceTranscode: true,
     },
-    audio: { codec: 'aac', forceTranscode: true },
+    audio: acodec ? { codec: acodec, bitrate: 192_000, forceTranscode: true } : { discard: true },
     tracks: 'primary',
     showWarnings: false,
   });
@@ -108,7 +112,7 @@ async function encodeAudio(input: Input, track: InputAudioTrack, job: ClipJob): 
     trim: { start: job.start, end: job.end },
     video: { discard: true },
     audio: aac
-      ? { codec: 'aac', numberOfChannels, sampleRate, quality: new Quality(192_000), forceTranscode: true }
+      ? { codec: 'aac', numberOfChannels, sampleRate, bitrate: 192_000, forceTranscode: true }
       : { codec: 'pcm-s16', numberOfChannels, sampleRate, forceTranscode: true },
     tracks: 'primary',
     showWarnings: false,
