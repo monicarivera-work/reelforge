@@ -145,3 +145,16 @@ const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
 `;
 writeFileSync(new URL('favicon.svg', OUT), svg);
 console.log('favicon.svg');
+
+// Android launcher icons (legacy square and round, plus the adaptive-icon foreground).
+const RES = new URL('../android/app/src/main/res/', import.meta.url);
+const DENSITIES = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };
+for (const [d, k] of Object.entries(DENSITIES)) {
+  const dir = new URL(`mipmap-${d}/`, RES);
+  mkdirSync(dir, { recursive: true });
+  // Adaptive icons are 108dp with the middle 66dp always visible, so the glyph shrinks to fit.
+  writeFileSync(new URL('ic_launcher_foreground.png', dir), render(Math.round(108 * k), { scale: 0.6 }));
+  writeFileSync(new URL('ic_launcher.png', dir), render(Math.round(48 * k), { corner: 0.22 }));
+  writeFileSync(new URL('ic_launcher_round.png', dir), render(Math.round(48 * k), { corner: 0.5 }));
+}
+console.log('android launcher icons');
