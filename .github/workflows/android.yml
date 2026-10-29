@@ -1,0 +1,91 @@
+name: Android app
+
+# Every branch push builds an APK artifact; only main updates the public release.
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+      - run: npm ci
+      - run: npm test
+      - run: npm run build:android
+
+      # Signing: repository secrets give every build the same key, so new versions install over old
+      # ones forever. Without them a key is generated once and kept in the Actions cache.
+      - name: Signing key from secrets
+        if: ${{ env.HAS_KEYSTORE == 'true' }}
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.jks"
+            echo "ANDROID_KEYSTORE_PASSWORD=${{ secrets.ANDROID_KEYSTORE_PASSWORD }}"
+            echo "ANDROID_KEY_ALIAS=${{ secrets.ANDROID_KEY_ALIAS }}"
+            echo "ANDROID_KEY_PASSWORD=${{ secrets.ANDROID_KEY_PASSWORD }}"
+          } >> "$GITHUB_ENV"
+      - name: Cached signing key
+        if: ${{ env.HAS_KEYSTORE != 'true' }}
+        uses: actions/cache@v6
+        with:
+          path: ~/.reelforge-key
+          key: reelforge-android-key-v1
+      # The cached key only lives in this repository's private Actions cache, so its password is a fixed placeholder.
+      - name: Use or create the cached key
+        if: ${{ env.HAS_KEYSTORE != 'true' }}
+        run: |
+          mkdir -p ~/.reelforge-key
+          if [ ! -f ~/.reelforge-key/release.jks ]; then
+            keytool -genkeypair -noprompt -keystore ~/.reelforge-key/release.jks -storepass reelforge -keypass reelforge \
+              -alias reelforge -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=ReelForge"
+          fi
+          {
+            echo "ANDROID_KEYSTORE_FILE=$HOME/.reelforge-key/release.jks"
+            echo "ANDROID_KEYSTORE_PASSWORD=reelforge"
+            echo "ANDROID_KEY_ALIAS=reelforge"
+            echo "ANDROID_KEY_PASSWORD=reelforge"
+          } >> "$GITHUB_ENV"
+
+      - name: Build APK
+        working-directory: android
+        env:
+          VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 1.${{ github.run_number }}
+        run: ./gradlew assembleRelease --no-daemon
+      - run: cp android/app/build/outputs/apk/release/app-release.apk ReelForge.apk
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ReelForge-android
+          path: ReelForge.apk
+
+      - name: Publish the "Latest Android app" release
+        if: ${{ github.ref == 'refs/heads/main' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete android-latest --yes --cleanup-tag || true
+          gh release create android-latest ReelForge.apk \
+            --title "Latest Android app (build ${{ github.run_number }})" \
+            --target "${{ github.sha }}" \
+            --notes "Open this page on your Android phone and tap **ReelForge.apk** to download it, then open the file to install. Android asks you to allow installing apps from your browser the first time. Built from ${{ github.sha }}."

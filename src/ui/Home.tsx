@@ -1,4 +1,4 @@
-import { Clapperboard, Copy, EllipsisVertical, Film, Pencil, Plus, RefreshCw, Smartphone, Trash, TriangleAlert, X } from 'lucide-react';
+import { Clapperboard, Copy, EllipsisVertical, Film, Pencil, Plus, RefreshCw, Scissors, Smartphone, Trash, TriangleAlert, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { Project } from '../types';
 import { deleteProject, listProjects, requestPersistence, saveProject, storageInfo } from '../lib/db';
@@ -6,19 +6,41 @@ import { newProject } from '../lib/defaults';
 import { canEncodeVideo, pickFiles } from '../lib/device';
 import { projectDuration } from '../lib/layout';
 import { ensureThumbs, getThumbStrip, mediaEvents } from '../lib/media';
-import { openProject } from '../lib/route';
-import { formatBytes, formatDuration, isAndroid, isIOS, isStandalone, uid } from '../lib/util';
+import { openProject, openStudio } from '../lib/route';
+import { formatBytes, formatDuration, isAndroid, isIOS, isNativeApp, isStandalone, uid } from '../lib/util';
 import { useApp } from '../state/app';
 import { toast } from '../state/store';
 import { setPendingImport } from './actions';
-import { Progress } from './common';
+import { ClipsLibrary } from './Clips';
+import { Progress, Segmented } from './common';
 import { confirmDialog, menuDialog, promptDialog } from './dialog';
 
 const INSTALL_HINT_KEY = 'rf-install-hint';
+const TAB_KEY = 'rf-home-tab';
+
+type Tab = 'projects' | 'clips';
+
+function initialTab(): Tab {
+  try {
+    return sessionStorage.getItem(TAB_KEY) === 'clips' ? 'clips' : 'projects';
+  } catch {
+    return 'projects';
+  }
+}
 
 export function Home() {
   const [projects, setProjects] = useState<Project[] | null>(null);
   const [storage, setStorage] = useState<{ usage: number; quota: number } | null>(null);
+  const [tab, setTab] = useState<Tab>(initialTab);
+
+  const pickTab = (t: Tab) => {
+    setTab(t);
+    try {
+      sessionStorage.setItem(TAB_KEY, t);
+    } catch {
+      /* ignore */
+    }
+  };
 
   const refresh = () => {
     void listProjects()
@@ -71,15 +93,36 @@ export function Home() {
         </div>
       )}
 
-      <button className="new-project" onClick={startNew}>
-        <Plus size={28} aria-hidden />
-        <span>
-          <b>New project</b>
-          <small>Pick videos and photos</small>
-        </span>
-      </button>
+      <div className="home-actions">
+        <button className="new-project" onClick={startNew}>
+          <Plus size={28} aria-hidden />
+          <span>
+            <b>New project</b>
+            <small>Pick videos and photos</small>
+          </span>
+        </button>
+        <button className="new-project alt" onClick={openStudio}>
+          <Scissors size={26} aria-hidden />
+          <span>
+            <b>Clip studio</b>
+            <small>{isNativeApp() ? 'YouTube, links and files' : 'Links and files'}</small>
+          </span>
+        </button>
+      </div>
 
-      {projects && projects.length > 0 && (
+      <Segmented
+        label="Show"
+        value={tab}
+        onChange={pickTab}
+        options={[
+          { value: 'projects', label: 'Projects' },
+          { value: 'clips', label: 'Clips' },
+        ]}
+      />
+
+      {tab === 'clips' && <ClipsLibrary />}
+
+      {tab === 'projects' && projects && projects.length > 0 && (
         <>
           <h2>Projects</h2>
           <ul className="projects" role="list" style={{ listStyle: 'none', margin: 0, padding: 0 }}>
@@ -90,7 +133,7 @@ export function Home() {
         </>
       )}
 
-      {projects && projects.length === 0 && (
+      {tab === 'projects' && projects && projects.length === 0 && (
         <div className="empty">
           <Film size={32} aria-hidden />
           <b>No projects yet</b>
@@ -104,7 +147,7 @@ export function Home() {
             {formatBytes(storage.usage)} used of {formatBytes(storage.quota)} available on this device
           </span>
           <Progress value={storage.usage / storage.quota} label="Storage used" />
-          <span>Nothing is uploaded. Your videos never leave this phone.</span>
+          <span>Projects and clips are stored on this device and never uploaded.</span>
         </div>
       )}
     </main>
@@ -140,7 +183,7 @@ function InstallNotice() {
       return false;
     }
   });
-  if (dismissed || isStandalone() || (!installEvent && !isIOS && !isAndroid)) return null;
+  if (dismissed || isStandalone() || isNativeApp() || (!installEvent && !isIOS && !isAndroid)) return null;
 
   const dismiss = () => {
     setDismissed(true);

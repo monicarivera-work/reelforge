@@ -134,7 +134,25 @@ export function deepClone<T>(v: T): T {
   return structuredClone(v);
 }
 
+/** Whether this is running inside the Android app rather than a browser. */
+export function isNativeApp(): boolean {
+  return typeof window !== 'undefined' && !!(window as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.();
+}
+
 export function downloadBlob(blob: Blob, name: string) {
+  if (isNativeApp()) {
+    // The app's web view can't download files, so save them to Documents/ReelForge instead.
+    void Promise.all([import('./native'), import('../state/store')]).then(([native, store]) =>
+      native.nativeSave(blob, name).then(
+        (where) => store.toast(`Saved to ${where}`, 'success'),
+        (e) => {
+          console.error('Saving failed', e);
+          store.toast('Could not save the file. Check the phone has space.', 'error');
+        },
+      ),
+    );
+    return;
+  }
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;

@@ -7,6 +7,7 @@ import { Progress } from './ui/common';
 import { DialogHost } from './ui/dialog';
 import { Editor } from './ui/Editor';
 import { Home } from './ui/Home';
+import { Studio } from './ui/Studio';
 
 export function App() {
   const route = useRoute();
@@ -23,7 +24,7 @@ export function App() {
   }, []);
   return (
     <>
-      {route.name === 'editor' ? <Editor key={route.id} id={route.id} /> : <Home />}
+      {route.name === 'editor' ? <Editor key={route.id} id={route.id} /> : route.name === 'studio' ? <Studio /> : <Home />}
       <TaskPill />
       <Toasts />
       <DialogHost />

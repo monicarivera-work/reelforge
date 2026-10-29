@@ -2,7 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-const BASE = '/reelforge/';
+// The Android app (Capacitor) serves the build from the root; GitHub Pages serves it from /reelforge/.
+const BASE = process.env.CAPACITOR_BUILD ? '/' : '/reelforge/';
 
 export default defineConfig({
   base: BASE,

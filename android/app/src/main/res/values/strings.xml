@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ReelForge</string>
+    <string name="title_activity_main">ReelForge</string>
+    <string name="package_name">io.github.monicariverawork.reelforge</string>
+    <string name="custom_url_scheme">io.github.monicariverawork.reelforge</string>
+</resources>
