@@ -3,6 +3,7 @@
  * behavior, so the same build runs everywhere.
  */
 import { Capacitor, CapacitorHttp } from '@capacitor/core';
+import type { SocialNet } from './social';
 
 export const isNative = (): boolean => Capacitor.isNativePlatform();
 
@@ -57,6 +58,33 @@ export async function nativeFetch(input: RequestInfo | URL, init?: RequestInit):
 export function anyFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
   return isNative() ? nativeFetch(input, init) : fetch(input, init);
 }
+
+/**
+ * Networking for TikTok and Instagram downloads in the Android app. Android keeps cookies between
+ * requests on its own (Capacitor installs a cookie manager), as a browser would.
+ */
+export const nativeNet: SocialNet = {
+  async text(url, init = {}) {
+    if (!isNative()) throw new TypeError('Only the Android app can reach this site.');
+    if (init.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    const res = await CapacitorHttp.request({
+      url,
+      method: init.method ?? 'GET',
+      headers: init.headers ?? {},
+      data: init.body,
+      responseType: 'text',
+      shouldEncodeUrlParams: false,
+      connectTimeout: 20_000,
+      readTimeout: 60_000,
+    });
+    if (init.signal?.aborted) throw new DOMException('Aborted', 'AbortError');
+    const headers: Record<string, string> = {};
+    for (const [k, v] of Object.entries(res.headers ?? {})) headers[k.toLowerCase()] = String(v);
+    const data: unknown = res.data;
+    return { status: res.status, url: res.url || url, headers, text: typeof data === 'string' ? data : JSON.stringify(data ?? '') };
+  },
+  bytes: (url, init = {}) => nativeFetch(url, { method: init.method, headers: init.headers, body: init.body, signal: init.signal }),
+};
 
 /** Bytes per write when handing files to the native side (base64 grows them by a third). */
 const WRITE_CHUNK = 3 * 1024 * 1024;

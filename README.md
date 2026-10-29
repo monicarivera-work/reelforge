@@ -6,7 +6,7 @@ A full video editor for content creators that runs on your phone. Edit, caption 
 
 ## Install it on your phone
 
-- **Android app (Samsung and other Android phones):** on the phone, open the [Latest Android app release](https://github.com/monicarivera-work/reelforge/releases/tag/android-latest) and tap **ReelForge.apk**. Open the downloaded file and tap **Install**. The first time, Android asks you to allow installs from your browser (on Samsung: **Settings → Apps → Special access → Install unknown apps**). New versions install over the old one and keep your clips. Only the Android app can search and download from YouTube.
+- **Android app (Samsung and other Android phones):** on the phone, open the [Latest Android app release](https://github.com/monicarivera-work/reelforge/releases/tag/android-latest) and tap **ReelForge.apk**. Open the downloaded file and tap **Install**. The first time, Android asks you to allow installs from your browser (on Samsung: **Settings → Apps → Special access → Install unknown apps**). New versions install over the old one and keep your clips. Only the Android app can search and download from YouTube, or download from TikTok and Instagram.
 - **iPhone:** open the link in Safari, tap **Share**, then **Add to Home Screen**.
 - **Android, desktop or any browser:** open the link in Chrome, tap the **⋮** menu, then **Install app** (or **Add to Home screen**).
 
@@ -30,7 +30,7 @@ After the first visit it works offline. Auto-captions download a speech model (a
 
 Tap **Clip studio** on the home screen to watch, search and clip on one screen.
 
-1. **Find a video.** In the Android app, type in the search box to search YouTube, or paste a YouTube link. In any browser you can paste a YouTube link to watch it, paste a direct link to a video or audio file, or tap the folder button to open a file from your device.
+1. **Find a video.** In the Android app, type in the search box to search YouTube, or paste a YouTube, TikTok or Instagram link. TikTok and Instagram videos download straight away (public posts only; for an Instagram carousel, the link's `img_index` picks the item, otherwise its first video). In any browser you can paste a YouTube link to watch it, paste a direct link to a video or audio file, or tap the folder button to open a file from your device.
 2. **Mark the clip.** Play the video and tap **Now** to set the start and end, or type the times. Tap **Play the clip** to check it.
 3. **Choose video or audio,** and pick a crop shape (9:16, 1:1, 4:5, 16:9 or free). Drag the box to move it; drag its corner to resize it.
 4. **YouTube videos** download first (Android app only): pick 360p, 720p or 1080p and tap **Download to crop and clip**. Your start and end stay marked.
@@ -38,7 +38,7 @@ Tap **Clip studio** on the home screen to watch, search and clip on one screen.
 
 Saved clips appear under **Clips** on the home screen. There you can make folders, filter by video or audio, search, play, share, save to the device (Documents/ReelForge in the Android app), rename, move, delete, or open a clip in a new editing project.
 
-Only download and clip videos you own or have permission to use, and follow YouTube's Terms of Service. YouTube changes how it serves videos from time to time, so YouTube search or downloads may stop working until the app is updated.
+Only download and clip videos you own or have permission to use, and follow the Terms of Service of YouTube, TikTok and Instagram. These sites change how they serve videos from time to time, so searches or downloads may stop working until the app is updated.
 
 ## Make a soundbite
 

@@ -37,7 +37,8 @@ import { listClips, listFolders, putClip, putFolder, requestPersistence } from '
 import { acquireWakeLock, pickFiles } from '../lib/device';
 import { haptic } from '../lib/haptics';
 import { probe } from '../lib/media';
-import { anyFetch } from '../lib/native';
+import { anyFetch, nativeNet } from '../lib/native';
+import { downloadSocial, parseSocialLink, SITE_NAMES, SocialError, type SocialLink } from '../lib/social';
 import { goHome } from '../lib/route';
 import { clamp, formatBytes, formatClock, formatDuration, parseTime, safeFileName, uid } from '../lib/util';
 import { canUseYouTubeApi, downloadYouTube, searchYouTube, youTubeDetails, type YtVideo } from '../lib/youtube';
@@ -72,6 +73,8 @@ type Source =
       youtubeId?: string;
       /** which download quality made it, so another quality can be fetched */
       quality?: number;
+      /** the TikTok or Instagram post it came from */
+      sourceUrl?: string;
     };
 
 interface Busy {
@@ -151,7 +154,11 @@ export function Studio() {
     }
   };
 
-  const openFile = async (blob: Blob, title: string, extra: { youtubeId?: string; quality?: number; keepTimes?: boolean } = {}) => {
+  const openFile = async (
+    blob: Blob,
+    title: string,
+    extra: { youtubeId?: string; quality?: number; sourceUrl?: string; keepTimes?: boolean } = {},
+  ) => {
     try {
       const type = blob.type || (/\.(mp3|m4a|aac|wav|ogg|opus|flac)$/i.test(title) ? 'audio/mpeg' : 'video/mp4');
       const asset = await probe(blob, title, type);
@@ -200,12 +207,21 @@ export function Studio() {
       openYouTube({ id, title: 'YouTube video', channel: '', duration: 0 }, parseYouTubeStart(q));
       return;
     }
+    const social = parseSocialLink(q);
+    if (social) {
+      if (!native) {
+        setError(`Downloading from ${SITE_NAMES[social.site]} works in the Android app. Browsers block it.`);
+        return;
+      }
+      await downloadLink(social);
+      return;
+    }
     if (isDirectMediaUrl(q)) {
       await fetchLink(q);
       return;
     }
     if (/^https?:\/\//i.test(q)) {
-      setError('That link isn’t a YouTube video or a media file. Paste a YouTube link, or a link ending in .mp4, .mp3 and so on.');
+      setError('That link isn’t a YouTube, TikTok or Instagram video, or a media file. Paste one of those, or a link ending in .mp4, .mp3 and so on.');
       return;
     }
     if (!native) {
@@ -241,6 +257,34 @@ export function Studio() {
           : 'This site doesn’t let browsers download its files. Save the file to your device first, or use the Android app.',
       );
     } finally {
+      setBusy((b) => (b?.ctl === ctl ? null : b));
+    }
+  };
+
+  /** Downloads a TikTok or Instagram video so it can be clipped. */
+  const downloadLink = async (link: SocialLink) => {
+    busy?.ctl.abort();
+    const ctl = new AbortController();
+    setBusy({ label: `Opening the ${SITE_NAMES[link.site]} post`, progress: null, ctl });
+    playerRef.current?.pause();
+    const lock = await acquireWakeLock();
+    try {
+      const got = await downloadSocial(link, nativeNet, {
+        maxHeight: prefs.quality,
+        signal: ctl.signal,
+        onProgress: (p, label) => !ctl.signal.aborted && setBusy({ label, progress: p, ctl }),
+      });
+      if (ctl.signal.aborted) return;
+      setResults(null);
+      await openFile(got.blob, `${got.title}.mp4`, { sourceUrl: link.url });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      haptic('medium');
+    } catch (err) {
+      if (ctl.signal.aborted) return;
+      console.error(err);
+      setError(err instanceof SocialError ? err.message : `Couldn’t download from ${SITE_NAMES[link.site]}. Check your connection and try again.`);
+    } finally {
+      void lock?.release();
       setBusy((b) => (b?.ctl === ctl ? null : b));
     }
   };
@@ -364,6 +408,7 @@ export function Studio() {
           folderId: folders.some((f) => f.id === prefs.folderId) ? prefs.folderId : null,
           source: source.title,
           youtubeId: source.youtubeId,
+          sourceUrl: source.sourceUrl,
           start: check.start,
           end: check.end,
           createdAt: Date.now(),
@@ -414,8 +459,8 @@ export function Studio() {
           inputMode="search"
           enterKeyHint="search"
           autoComplete="off"
-          aria-label={native ? 'Search YouTube or paste a link' : 'Paste a YouTube or video link'}
-          placeholder={native ? 'Search YouTube or paste a link' : 'Paste a YouTube or video link'}
+          aria-label={native ? 'Search YouTube or paste a YouTube, TikTok or Instagram link' : 'Paste a YouTube or video link'}
+          placeholder={native ? 'Search YouTube or paste a TikTok, Instagram link…' : 'Paste a YouTube or video link'}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -434,7 +479,7 @@ export function Studio() {
         <div className="notice" role="note">
           <Smartphone size={20} aria-hidden />
           <div className="body">
-            <b>YouTube search and download need the Android app</b>
+            <b>YouTube, TikTok and Instagram downloads need the Android app</b>
             <p>
               Browsers block them. Here you can watch a YouTube link and mark times, or clip any video or audio file from this device with the folder
               button.
@@ -702,7 +747,7 @@ export function Studio() {
           <b>Make a clip</b>
           <span>
             {native
-              ? 'Search YouTube, paste a link, or tap the folder button to clip a video or song from this phone.'
+              ? 'Search YouTube, paste a YouTube, TikTok or Instagram link, or tap the folder button to clip a video or song from this phone.'
               : 'Paste a YouTube link to watch it, or tap the folder button to clip a video or song from this device.'}
           </span>
           <button className="secondary-btn" onClick={fromDevice}>

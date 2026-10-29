@@ -278,6 +278,8 @@ export interface ClipMeta {
   source?: string;
   /** YouTube video ID when it came from YouTube */
   youtubeId?: string;
+  /** TikTok or Instagram post link when it came from one */
+  sourceUrl?: string;
   /** seconds into the source */
   start: number;
   end: number;
